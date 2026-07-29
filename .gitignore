@@ -1,0 +1,14 @@
+# Terraform State & Secrets
+*.tfstate
+*.tfstate.backup
+.terraform/
+*.tfvars
+tfplan
+
+# Python / PySpark
+__pycache__/
+.ipynb_checkpoints/
+*.pyc
+
+# Environment & Keys
+.env
