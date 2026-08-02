@@ -18,3 +18,7 @@ __pycache__/
 
 # Data
 data/
+
+# MLFlow
+mlruns/
+mlflow.db
