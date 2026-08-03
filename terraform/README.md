@@ -61,7 +61,7 @@ The Terraform code in [`main.tf`](main.tf) provisions the following Azure and Da
 
 ### 4. Serverless MLOps Job Dependency Management
 * **Issue**: Serverless compute environments in Databricks require explicit runtime dependencies for custom Python packages (e.g. `kagglehub`).
-* **Fix**: Configured `environment` block with `serverless_ml_env` (environment version 3) and listed `kagglehub` under `dependencies` in [`main.tf`](main.tf#L104-L112).
+* **Fix**: Configured `environment` block with `serverless_ml_env` (environment version 4) and listed `kagglehub` under `dependencies` in [`main.tf`](main.tf#L104-L112).
 
 ---
 
