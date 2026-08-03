@@ -61,8 +61,9 @@ This project processes raw e-commerce order transactions, performs automated dat
 | **Cloud Storage & Governance** | Azure ADLS Gen2 & Databricks Unity Catalog | Passwordless authentication via Access Connector, Managed Identity, and External Locations. |
 | **Cloud Infrastructure** | Azure Databricks (Premium SKU) | Serverless compute environment (v4) executing multi-task scheduled MLOps DAG jobs. |
 | **Infrastructure as Code** | [Terraform](https://www.terraform.io/) (v1.3+) | Automated provisioning of RG, ADLS Gen2, Workspace, Access Credentials, Grants, and Jobs. |
-| **CI/CD Automation** | [GitHub Actions](https://github.com/features/actions) (`ci.yml`) | Automated Python environment sync, notebook JSON validation, and Terraform quality checks (`fmt`, `validate`). |
-| **Environment & Package Mgmt** | `uv` / `pyproject.toml` | Fast, deterministic Python virtual environment setup. |
+| **Code Quality & Linting** | [Ruff](https://github.com/astral-sh/ruff) | High-performance Python & notebook linting (`ruff check`) and formatting (`ruff format`). |
+| **CI/CD Automation** | [GitHub Actions](https://github.com/features/actions) (`ci.yml`) | Automated Ruff linting & formatting checks via `astral-sh/ruff-action@v3`, notebook JSON validation, and Terraform quality checks (`fmt`, `validate`). |
+| **Environment & Package Mgmt** | `uv` / `pyproject.toml` | Fast, deterministic Python virtual environment setup and tool configuration. |
 
 ---
 
@@ -72,7 +73,7 @@ This project processes raw e-commerce order transactions, performs automated dat
 .
 ├── .github/
 │   └── workflows/
-│       └── ci.yml                         # Automated CI for Python, Notebooks & Terraform
+│       └── ci.yml                         # Automated CI for Ruff lint/format, Notebooks & Terraform
 ├── data/                                  # Local data directory
 │   ├── raw/                               # Raw downloaded CSV files
 │   └── curated/                           # Cleaned & processed Delta Lake files (.delta)
@@ -84,7 +85,7 @@ This project processes raw e-commerce order transactions, performs automated dat
 │   ├── providers.tf                       # Provider configurations (azurerm, databricks, random)
 │   ├── variables.tf                       # Terraform variables (location, environment)
 │   └── README.md                          # Terraform deployment guide
-├── pyproject.toml                         # Project dependencies and configuration
+├── pyproject.toml                         # Project dependencies and Ruff tool configuration
 ├── uv.lock                                # Locked dependency tree
 └── README.md                              # Main project documentation
 ```
@@ -148,7 +149,13 @@ This project processes raw e-commerce order transactions, performs automated dat
    source .venv/bin/activate
    ```
 
-3. **Run Notebooks Locally**:
+3. **Run Linting & Formatting Checks**:
+   ```bash
+   uv run ruff check .
+   uv run ruff format --check .
+   ```
+
+4. **Run Notebooks Locally**:
    Open and run the notebooks in order:
    - `notebooks/01_data_ingestion_and_cleaning.ipynb`
    - `notebooks/02_rfm_feature_engineering_and_ml.ipynb`
@@ -180,7 +187,7 @@ This project processes raw e-commerce order transactions, performs automated dat
    - **Databricks Workspace**: Premium SKU (`dbx-portfolio-workspace-dev`)
    - **Unity Catalog Integration**: Databricks Access Connector (Azure Managed Identity), Storage Credentials, External Location, and Grants
    - **Notebook Sync**: Automated upload of notebooks to `/Shared/notebooks/`
-   - **Serverless MLOps Job Workflow**: Multi-task DAG workflow (`data_ingestion_task` -> `rfm_ml_training_task`) using Serverless compute (`serverless_ml_env` with `kagglehub` dependency) scheduled daily at 6:00 AM UTC
+   - **Serverless MLOps Job Workflow**: Multi-task DAG workflow (`data_ingestion_task` -> `rfm_ml_training_task`) using Serverless compute (`serverless_ml_env` version 4 with `kagglehub` dependency) scheduled daily at 6:00 AM UTC
 
 ---
 
@@ -192,8 +199,8 @@ This project processes raw e-commerce order transactions, performs automated dat
 | **Databricks SKU Deprecation** | Azure deprecated `standard` SKU for new Databricks workspace creations. | Upgraded `sku = "premium"` in `main.tf`. |
 | **Unity Catalog Passwordless Storage** | Manual access keys / SAS tokens introduce security vulnerabilities and credential rotation overhead. | Provisioned `azurerm_databricks_access_connector` with Managed Identity (`Storage Blob Data Contributor`) and configured Unity Catalog `databricks_storage_credential` & `databricks_external_location`. |
 | **Notebook Cloud Compatibility** | Local file paths (`../data`) fail on Databricks clusters without DBFS/ADLS mounts. | Introduced dynamic environment detection (`IS_DATABRICKS`), widget parameter retrieval (`STORAGE_ACCOUNT_NAME`), and ABFSS protocol pathing (`abfss://raw-data@<storage>.dfs.core.windows.net`). |
-| **Serverless Dependency Provisioning** | Serverless compute nodes lack custom third-party Python packages (`kagglehub`) preinstalled. | Specified `environment` block in `databricks_job` targeting `serverless_ml_env` (version 3) with explicit `kagglehub` pip package dependencies. |
-| **Delta Lake Storage Format** | Standard Parquet files lack ACID support and catalog metadata integration. | Saved curated orders as Delta Lake format (`cleaned_orders.delta`) and registered catalog table `default.cleaned_orders`. |
+| **Serverless Dependency Provisioning** | Serverless compute nodes lack custom third-party Python packages (`kagglehub`) preinstalled. | Specified `environment` block in `databricks_job` targeting `serverless_ml_env` (version 4) with explicit `kagglehub` pip package dependencies. |
+| **Delta Lake Schema Overwrite Mismatch** | Overwriting Delta tables without explicit schema configuration triggers `DELTA_FAILED_TO_MERGE_FIELDS` errors. | Explicitly cast calculated SQL fields (`CAST(DATEDIFF(...) AS INT) AS recency`) and enabled `.option("overwriteSchema", "true")` on Delta writes. |
 
 ---
 
