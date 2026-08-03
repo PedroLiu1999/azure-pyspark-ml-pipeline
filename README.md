@@ -114,12 +114,11 @@ This project processes raw e-commerce order transactions, performs automated dat
   - Normalizes feature distributions using `pyspark.ml.feature.StandardScaler`.
   - Fits distributed unsupervised `pyspark.ml.clustering.KMeans` ($K=4$ clusters, `seed=42`).
   - Evaluates cluster separation using `pyspark.ml.evaluation.ClusteringEvaluator` (Silhouette Score).
-- **MLflow Native Spark Tracking**:
+- **MLflow Tracking**:
   - Configures experiment path `/Shared/Customer_Segmentation_MLOps`.
-  - Logs hyperparameters (`k_clusters=4`, `seed=42`, `algorithm="pyspark-ml-kmeans"`), metrics (Silhouette Score), and registers trained Pipeline models natively via `mlflow.spark.log_model(spark_model=pipeline_model, artifact_path="pyspark_kmeans_rfm_model")`.
+  - Logs hyperparameters (`k_clusters=4`, `seed=42`, `algorithm="pyspark-ml-kmeans"`) and evaluation metrics (`silhouette_score`).
 - **Profiling & Vector Cleanup**:
   - Drops intermediate feature vector columns (`raw_features`, `scaled_features`) before querying cluster profiles in PySpark SQL.
-  - Renders customer spend distribution visualizations with Seaborn and Matplotlib.
   - Profiles cluster metrics (average recency, frequency, monetary spend, return rate) via PySpark SQL queries.
   - Renders customer spend distribution visualizations with Seaborn and Matplotlib.
 

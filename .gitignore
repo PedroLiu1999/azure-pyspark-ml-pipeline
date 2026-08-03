@@ -3,6 +3,7 @@
 *.tfstate.backup
 .terraform/
 *.tfvars
+*.lock.info
 tfplan
 
 # Python / PySpark
