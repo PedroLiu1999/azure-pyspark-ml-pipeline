@@ -84,7 +84,24 @@ resource "databricks_grants" "raw_location_grants" {
   }
 }
 
-# 10. Automatically Upload Notebooks from local folder to Databricks
+# 10. Provision Unity Catalog Schemas via Terraform
+resource "databricks_schema" "ml_schema" {
+  catalog_name  = "dbx_portfolio_workspace_dev_7405617143584509"
+  name          = "ml"
+  comment       = "Managed Unity Catalog schema for ML model staging and artifacts"
+  force_destroy = true
+}
+
+# 11. Unity Catalog Volume for MLflow Spark ML Staging
+resource "databricks_volume" "mlflow_tmp_volume" {
+  name         = "mlflow_tmp"
+  catalog_name = databricks_schema.ml_schema.catalog_name
+  schema_name  = databricks_schema.ml_schema.name
+  volume_type  = "MANAGED"
+  comment      = "Managed UC Volume for MLflow Spark ML temporary model staging (dfs_tmpdir)"
+}
+
+# 12. Automatically Upload Notebooks from local folder to Databricks
 resource "databricks_notebook" "ingestion_notebook" {
   source = "${path.module}/../notebooks/01_data_ingestion_and_cleaning.ipynb"
   path   = "/Shared/notebooks/01_data_ingestion_and_cleaning"
@@ -97,7 +114,7 @@ resource "databricks_notebook" "rfm_ml_notebook" {
   format = "JUPYTER"
 }
 
-# 11. Create an Automated MLOps Job Workflow (Serverless Compute)
+# 13. Create an Automated MLOps Job Workflow (Serverless Compute)
 resource "databricks_job" "mlops_pipeline_job" {
   name = "PySpark_MLOps_Pipeline_Job"
 
@@ -137,6 +154,7 @@ resource "databricks_job" "mlops_pipeline_job" {
       notebook_path = databricks_notebook.rfm_ml_notebook.path
       base_parameters = {
         "STORAGE_ACCOUNT_NAME" = azurerm_storage_account.datalake.name
+        "MLFLOW_DFS_TMP"       = "/Volumes/${databricks_volume.mlflow_tmp_volume.catalog_name}/${databricks_volume.mlflow_tmp_volume.schema_name}/${databricks_volume.mlflow_tmp_volume.name}"
       }
     }
   }
