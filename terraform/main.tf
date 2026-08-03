@@ -36,28 +36,7 @@ resource "azurerm_databricks_workspace" "databricks" {
   sku                 = "premium"
 }
 
-# 5. Databricks Single-Node PySpark ML Cluster
-resource "databricks_cluster" "ml_cluster" {
-  cluster_name            = "pyspark-ml-cluster-${var.environment}"
-  spark_version           = "14.3.x-cpu-ml-scala2.12" # Modern LTS ML runtime (Spark 3.5.0)
-  node_type_id            = "Standard_D4s_v3"        # Supported Databricks VM size (4 vCPUs)
-  num_workers             = 0                        # Explicitly single-node (1 node = 4 vCPUs total)
-  autotermination_minutes = 30
-
-  spark_conf = {
-    "spark.master" = "local[*]"
-    # Auto-authenticate Databricks to ADLS Gen2 Storage
-    "fs.azure.account.key.${azurerm_storage_account.datalake.name}.dfs.core.windows.net" = azurerm_storage_account.datalake.primary_access_key
-    "spark.storage.account.name" = azurerm_storage_account.datalake.name
-  }
-
-  custom_tags = {
-    "ResourceClass" = "SingleNode"
-  }
-}
-
-
-# 6. Automatically Upload Notebooks from local folder to Databricks
+# 5. Automatically Upload Notebooks from local folder to Databricks
 resource "databricks_notebook" "ingestion_notebook" {
   source = "${path.module}/../notebooks/01_data_ingestion_and_cleaning.ipynb"
   path   = "/Shared/notebooks/01_data_ingestion_and_cleaning"
@@ -70,24 +49,37 @@ resource "databricks_notebook" "rfm_ml_notebook" {
   format = "JUPYTER"
 }
 
-# 7. Create an Automated MLOps Job Workflow (Multi-task DAG)
+# 6. Create an Automated MLOps Job Workflow (Serverless Compute)
 resource "databricks_job" "mlops_pipeline_job" {
   name = "PySpark_MLOps_Pipeline_Job"
 
+  environment {
+    environment_key = "serverless_ml_env"
+    spec {
+      environment_version = "3"
+      dependencies = [
+        "kagglehub"
+      ]
+    }
+  }
+
   # Task 1: Data Ingestion & Cleaning
   task {
-    task_key            = "data_ingestion_task"
-    existing_cluster_id = databricks_cluster.ml_cluster.id
+    task_key        = "data_ingestion_task"
+    environment_key = "serverless_ml_env"
 
     notebook_task {
       notebook_path = databricks_notebook.ingestion_notebook.path
+      base_parameters = {
+        "STORAGE_ACCOUNT_NAME" = azurerm_storage_account.datalake.name
+      }
     }
   }
 
   # Task 2: RFM Feature Engineering & ML Training (runs after Task 1)
   task {
-    task_key            = "rfm_ml_training_task"
-    existing_cluster_id = databricks_cluster.ml_cluster.id
+    task_key        = "rfm_ml_training_task"
+    environment_key = "serverless_ml_env"
 
     depends_on {
       task_key = "data_ingestion_task"
@@ -95,6 +87,9 @@ resource "databricks_job" "mlops_pipeline_job" {
 
     notebook_task {
       notebook_path = databricks_notebook.rfm_ml_notebook.path
+      base_parameters = {
+        "STORAGE_ACCOUNT_NAME" = azurerm_storage_account.datalake.name
+      }
     }
   }
 
