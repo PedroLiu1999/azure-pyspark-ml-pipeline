@@ -1,20 +1,27 @@
 # Azure PySpark & ML Pipeline - Infrastructure Setup (Terraform)
 
-This folder contains the Infrastructure as Code (IaC) configuration using **Terraform** to provision the core Azure cloud resources required for the PySpark Data Lake & ML Pipeline.
+This folder contains the Infrastructure as Code (IaC) configuration using **Terraform** to provision the core Azure cloud resources and Databricks governance/jobs required for the PySpark Data Lake & ML Pipeline.
 
 ---
 
 ## 🏗️ Architecture Provisioned
 
-The Terraform code in [`main.tf`](main.tf) provisions the following Azure resources:
+The Terraform code in [`main.tf`](main.tf) provisions the following Azure and Databricks resources:
 
 | Resource | Resource Name Pattern | Description |
 | :--- | :--- | :--- |
-| **Resource Group** | `rg-pyspark-portfolio-${var.environment}` | Logical container for all project resources. |
-| **Azure Data Lake Storage Gen2** | `stspark<random_string>` | ADLS Gen2 Account with Hierarchical Namespace enabled (`is_hns_enabled = true`) for optimal PySpark read/write performance. |
-| **Storage Container** | `raw-data` | Private storage container for storing raw data files. |
-| **Azure Databricks Workspace** | `dbx-portfolio-workspace-${var.environment}` | **Premium SKU** Databricks workspace for interactive notebook analytics and PySpark pipeline execution. |
 | **Random String** | `random_string.unique` | Generates a 6-character random string to guarantee global uniqueness for the Azure Storage Account name. |
+| **Resource Group** | `rg-pyspark-portfolio-${var.environment}` | Logical container for all project resources in the specified location. |
+| **Azure Data Lake Storage Gen2** | `stspark<random_string>` | ADLS Gen2 Account with Hierarchical Namespace enabled (`is_hns_enabled = true`) for optimal PySpark read/write performance. |
+| **Storage Container** | `raw-data` | Private storage container for storing raw and curated data lake layers. |
+| **Azure Databricks Workspace** | `dbx-portfolio-workspace-${var.environment}` | **Premium SKU** Databricks workspace enabling Unity Catalog governance and Serverless compute. |
+| **Databricks Access Connector** | `dbx-access-connector-${var.environment}` | Azure Access Connector configured with System-Assigned Managed Identity for passwordless ADLS Gen2 access. |
+| **Blob Contributor Role Assignment** | `access_connector_blob_contributor` | Grants `Storage Blob Data Contributor` role to the Access Connector's principal ID on the storage account. |
+| **Unity Catalog Storage Credential** | `mi_storage_credential_${var.environment}` | Databricks Unity Catalog storage credential backed by the Azure Access Connector Managed Identity. |
+| **Unity Catalog External Location** | `raw_data_external_location_${var.environment}` | External location mapping `abfss://raw-data@<storage_account>.dfs.core.windows.net/` to Unity Catalog. |
+| **Unity Catalog Grants** | `raw_location_grants` | Assigns `READ_FILES` and `WRITE_FILES` privileges on the external location to `account users`. |
+| **Notebook Deployment** | `ingestion_notebook` & `rfm_ml_notebook` | Automatically syncs local notebooks to `/Shared/notebooks/` in the Databricks workspace. |
+| **Serverless MLOps Job Pipeline** | `PySpark_MLOps_Pipeline_Job` | Multi-task DAG workflow using Serverless Compute (`serverless_ml_env`) with automated `kagglehub` library installation, scheduled daily at 6:00 AM UTC. |
 
 ---
 
@@ -22,15 +29,15 @@ The Terraform code in [`main.tf`](main.tf) provisions the following Azure resour
 
 1. **Azure CLI**: Installed and logged in (`az login`).
 2. **Terraform CLI**: Version `>= 1.3.0` installed.
-3. **Azure Subscription**: Active subscription with permissions to create Resource Groups, Storage Accounts, and Databricks Workspaces.
+3. **Azure Subscription**: Active subscription with permissions to create Resource Groups, Storage Accounts, Databricks Workspaces, and Role Assignments.
 
 ---
 
 ## ⚙️ Configuration Files
 
-* [**`providers.tf`**](providers.tf): Sets minimum Terraform version (`>= 1.3.0`), provider dependencies (`azurerm`, `random`), and configures `skip_provider_registration = true` to bypass lengthy provider checks on restricted subscriptions.
+* [**`providers.tf`**](providers.tf): Sets minimum Terraform version (`>= 1.3.0`), provider dependencies (`azurerm`, `databricks`, `random`), and configures `skip_provider_registration = true` to bypass lengthy provider checks on restricted subscriptions.
 * [**`variables.tf`**](variables.tf): Defines input variables for `location` (default: `"Germany West Central"`) and `environment` (default: `"dev"`).
-* [**`main.tf`**](main.tf): Defines all Azure infrastructure resources.
+* [**`main.tf`**](main.tf): Defines all Azure cloud infrastructure, Unity Catalog credentials/locations, notebook sync, and Serverless MLOps job workflow.
 
 ---
 
@@ -51,6 +58,10 @@ The Terraform code in [`main.tf`](main.tf) provisions the following Azure resour
 ### 3. Databricks Standard SKU Deprecation
 * **Issue**: Azure deprecated `standard` SKU for new Databricks workspace creations (`DatabricksStandardSkuNotSupported`).
 * **Fix**: Configured `sku = "premium"` in [`main.tf`](main.tf#L36).
+
+### 4. Serverless MLOps Job Dependency Management
+* **Issue**: Serverless compute environments in Databricks require explicit runtime dependencies for custom Python packages (e.g. `kagglehub`).
+* **Fix**: Configured `environment` block with `serverless_ml_env` (environment version 3) and listed `kagglehub` under `dependencies` in [`main.tf`](main.tf#L104-L112).
 
 ---
 
