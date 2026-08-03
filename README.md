@@ -28,20 +28,20 @@ This project processes raw e-commerce order transactions, performs automated dat
                                       │              │ Unity Catalog Credential     │                │
                                       │              │ & External Location          │                │
                                       │  ┌───────────┴──────────────────────────────▼─────────────┐  │
-                                      │  │ Azure Databricks Access Connector (Managed Identity)  │  │
+                                      │  │ Azure Databricks Access Connector (Managed Identity)   │  │
                                       │  └──────────────────────────┬─────────────────────────────┘  │
                                       │                             │                                │
                                       │  ┌──────────────────────────▼─────────────────────────────┐  │
                                       │  │ Serverless Databricks MLOps Job (Multi-Task DAG)       │  │
                                       │  │                                                        │  │
                                       │  │  ┌──────────────────────────────────────────────────┐  │  │
-                                      │  │  │ Task 1: 01_data_ingestion_and_cleaning         │  │  │
+                                      │  │  │ Task 1: 01_data_ingestion_and_cleaning           │  │  │
                                       │  │  │ (Ingestion, Delta Lake format & Table creation)  │  │  │
                                       │  │  └─────────────────────────┬────────────────────────┘  │  │
                                       │  │                            │                           │  │
                                       │  │  ┌─────────────────────────▼────────────────────────┐  │  │
-                                      │  │  │ Task 2: 02_rfm_feature_engineering_and_ml     │  │  │
-                                      │  │  │ (RFM Aggregation, K-Means & MLflow Logging)    │  │  │
+                                      │  │  │ Task 2: 02_rfm_feature_engineering_and_ml        │  │  │
+                                      │  │  │ (RFM Aggregation, K-Means & MLflow Logging)      │  │  │
                                       │  │  └──────────────────────────────────────────────────┘  │  │
                                       │  └────────────────────────────────────────────────────────┘  │
                                       └──────────────────────────────────────────────────────────────┘
