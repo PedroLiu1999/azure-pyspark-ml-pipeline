@@ -62,16 +62,20 @@ resource "databricks_storage_credential" "external_mi" {
     access_connector_id = azurerm_databricks_access_connector.unity.id
   }
 
-  comment    = "Storage credential managed by Terraform via Azure Access Connector"
-  depends_on = [azurerm_role_assignment.access_connector_blob_contributor]
+  comment       = "Updated storage credential managed by Terraform via Azure Access Connector"
+  force_destroy = true
+  force_update  = true
+  depends_on    = [azurerm_role_assignment.access_connector_blob_contributor]
 }
 
 # 8. Unity Catalog External Location for Raw Data Container
 resource "databricks_external_location" "raw_location" {
   name            = "raw_data_external_location_${var.environment}"
   url             = "abfss://${azurerm_storage_container.raw_layer.name}@${azurerm_storage_account.datalake.name}.dfs.core.windows.net/"
-  credential_name = databricks_storage_credential.external_mi.id
+  credential_name = databricks_storage_credential.external_mi.name
   comment         = "External location for raw data lake container managed by Terraform"
+  force_destroy   = true
+  force_update    = true
 }
 
 # 9. Unity Catalog Grants on External Location
@@ -87,8 +91,10 @@ resource "databricks_grants" "raw_location_grants" {
 # 10. Provision Dedicated Unity Catalog & Schema via Terraform
 resource "databricks_catalog" "ml_catalog" {
   name          = "ml_catalog_${var.environment}"
+  storage_root  = "${databricks_external_location.raw_location.url}catalogs/ml_catalog"
   comment       = "Dedicated Unity Catalog for ML artifacts managed by Terraform"
   force_destroy = true
+  depends_on    = [databricks_external_location.raw_location]
 }
 
 resource "databricks_schema" "ml_schema" {
