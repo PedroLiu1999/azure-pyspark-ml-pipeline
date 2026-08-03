@@ -20,6 +20,7 @@ The Terraform code in [`main.tf`](main.tf) provisions the following Azure and Da
 | **Unity Catalog Storage Credential** | `mi_storage_credential_${var.environment}` | Databricks Unity Catalog storage credential backed by the Azure Access Connector Managed Identity. |
 | **Unity Catalog External Location** | `raw_data_external_location_${var.environment}` | External location mapping `abfss://raw-data@<storage_account>.dfs.core.windows.net/` to Unity Catalog. |
 | **Unity Catalog Grants** | `raw_location_grants` | Assigns `READ_FILES` and `WRITE_FILES` privileges on the external location to `account users`. |
+| **Dedicated Unity Catalog** | `ml_catalog_${var.environment}` | Dedicated Unity Catalog owned and managed by Terraform (`databricks_catalog.ml_catalog`) for ML schemas, tables, and volumes. |
 | **Notebook Deployment** | `ingestion_notebook` & `rfm_ml_notebook` | Automatically syncs local notebooks to `/Shared/notebooks/` in the Databricks workspace. |
 | **Serverless MLOps Job Pipeline** | `PySpark_MLOps_Pipeline_Job` | Multi-task DAG workflow using Serverless Compute (`serverless_ml_env` version 4) with automated `kagglehub` library installation, scheduled daily at 6:00 AM UTC. |
 

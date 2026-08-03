@@ -84,9 +84,15 @@ resource "databricks_grants" "raw_location_grants" {
   }
 }
 
-# 10. Provision Unity Catalog Schemas via Terraform
+# 10. Provision Dedicated Unity Catalog & Schema via Terraform
+resource "databricks_catalog" "ml_catalog" {
+  name          = "ml_catalog_${var.environment}"
+  comment       = "Dedicated Unity Catalog for ML artifacts managed by Terraform"
+  force_destroy = true
+}
+
 resource "databricks_schema" "ml_schema" {
-  catalog_name  = "${replace(azurerm_databricks_workspace.databricks.name, "-", "_")}_${azurerm_databricks_workspace.databricks.workspace_id}"
+  catalog_name  = databricks_catalog.ml_catalog.name
   name          = "ml"
   comment       = "Managed Unity Catalog schema for ML model staging and artifacts"
   force_destroy = true
