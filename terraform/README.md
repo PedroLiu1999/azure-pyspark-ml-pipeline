@@ -97,3 +97,13 @@ terraform apply tfplan
 ```bash
 terraform destroy
 ```
+
+---
+
+## 🔄 CI/CD Automation
+
+This repository includes a GitHub Actions workflow ([`.github/workflows/ci.yml`](../.github/workflows/ci.yml)) that automatically checks and validates Terraform code on every push and pull request to `main`:
+
+* **Formatting Check**: Executes `terraform fmt -check` to enforce standard HCL formatting.
+* **Validation Check**: Executes `terraform validate` to verify block syntax, variable references, and provider schemas.
+

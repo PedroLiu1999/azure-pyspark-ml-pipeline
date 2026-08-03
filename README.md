@@ -6,6 +6,7 @@
 [![Azure](https://img.shields.io/badge/Azure-Databricks%20%26%20ADLS%20Gen2-0089D6?style=flat&logo=microsoftazure&logoColor=white)](https://azure.microsoft.com/)
 [![Terraform](https://img.shields.io/badge/Terraform-1.3+-844FBA?style=flat&logo=terraform&logoColor=white)](https://www.terraform.io/)
 [![MLflow](https://img.shields.io/badge/MLflow-Tracking-0194E2?style=flat&logo=mlflow&logoColor=white)](https://mlflow.org/)
+[![CI Pipeline](https://github.com/PedroLiu1999/azure-pyspark-ml-pipeline/actions/workflows/ci.yml/badge.svg)](https://github.com/PedroLiu1999/azure-pyspark-ml-pipeline/actions)
 
 An end-to-end, production-grade **Machine Learning & MLOps Pipeline** built with **PySpark**, **Delta Lake**, **Azure Databricks**, **Azure Data Lake Storage (ADLS Gen2)**, **Unity Catalog**, and **Terraform**.
 
@@ -60,6 +61,7 @@ This project processes raw e-commerce order transactions, performs automated dat
 | **Cloud Storage & Governance** | Azure ADLS Gen2 & Databricks Unity Catalog | Passwordless authentication via Access Connector, Managed Identity, and External Locations. |
 | **Cloud Infrastructure** | Azure Databricks (Premium SKU) | Serverless compute environment executing multi-task scheduled MLOps DAG jobs. |
 | **Infrastructure as Code** | [Terraform](https://www.terraform.io/) (v1.3+) | Automated provisioning of RG, ADLS Gen2, Workspace, Access Credentials, Grants, and Jobs. |
+| **CI/CD Automation** | [GitHub Actions](https://github.com/features/actions) (`ci.yml`) | Automated Python environment sync, notebook JSON validation, and Terraform quality checks (`fmt`, `validate`). |
 | **Environment & Package Mgmt** | `uv` / `pyproject.toml` | Fast, deterministic Python virtual environment setup. |
 
 ---
@@ -68,6 +70,9 @@ This project processes raw e-commerce order transactions, performs automated dat
 
 ```
 .
+├── .github/
+│   └── workflows/
+│       └── ci.yml                         # Automated CI for Python, Notebooks & Terraform
 ├── data/                                  # Local data directory
 │   ├── raw/                               # Raw downloaded CSV files
 │   └── curated/                           # Cleaned & processed Delta Lake files (.delta)
