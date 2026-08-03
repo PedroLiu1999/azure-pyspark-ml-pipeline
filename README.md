@@ -56,10 +56,10 @@ This project processes raw e-commerce order transactions, performs automated dat
 | **Data Processing** | [PySpark SQL & DataFrames](https://spark.apache.org/docs/latest/api/python/) (v4.1.1+) | Distributed data ingestion, schema enforcement, filtering, and cleaning. |
 | **Storage Format** | [Delta Lake](https://delta.io/) (v4.3.1+) | ACID transactions, optimized storage (`cleaned_orders.delta`), and Catalog tables. |
 | **Feature Aggregation** | PySpark SQL & Window Functions | RFM metric calculation (Recency, Frequency, Monetary, Return Rate). |
-| **Machine Learning** | Scikit-Learn (`KMeans`, `StandardScaler`) & MLflow | Normalized customer segmentation ($K=3$), Silhouette Score, & MLflow model tracking. |
+| **Machine Learning** | PySpark ML (`VectorAssembler`, `StandardScaler`, `KMeans`) & MLflow | Distributed customer segmentation ($K=4$), Silhouette Score via `ClusteringEvaluator`, & `mlflow.spark` model logging. |
 | **Data Visualization** | Seaborn & Matplotlib | Visual profiling of cluster spend distributions and metric summaries. |
 | **Cloud Storage & Governance** | Azure ADLS Gen2 & Databricks Unity Catalog | Passwordless authentication via Access Connector, Managed Identity, and External Locations. |
-| **Cloud Infrastructure** | Azure Databricks (Premium SKU) | Serverless compute environment executing multi-task scheduled MLOps DAG jobs. |
+| **Cloud Infrastructure** | Azure Databricks (Premium SKU) | Serverless compute environment (v4) executing multi-task scheduled MLOps DAG jobs. |
 | **Infrastructure as Code** | [Terraform](https://www.terraform.io/) (v1.3+) | Automated provisioning of RG, ADLS Gen2, Workspace, Access Credentials, Grants, and Jobs. |
 | **CI/CD Automation** | [GitHub Actions](https://github.com/features/actions) (`ci.yml`) | Automated Python environment sync, notebook JSON validation, and Terraform quality checks (`fmt`, `validate`). |
 | **Environment & Package Mgmt** | `uv` / `pyproject.toml` | Fast, deterministic Python virtual environment setup. |
@@ -78,9 +78,9 @@ This project processes raw e-commerce order transactions, performs automated dat
 │   └── curated/                           # Cleaned & processed Delta Lake files (.delta)
 ├── notebooks/                             # Jupyter / Databricks notebooks
 │   ├── 01_data_ingestion_and_cleaning.ipynb   # Data download, cleaning, Delta format write
-│   └── 02_rfm_feature_engineering_and_ml.ipynb# RFM features, K-Means, MLflow, Seaborn profiling
+│   └── 02_rfm_feature_engineering_and_ml.ipynb# RFM features, PySpark ML KMeans, MLflow, Seaborn profiling
 ├── terraform/                             # Infrastructure as Code (IaC)
-│   ├── main.tf                            # Core Azure, Unity Catalog & Databricks job resources
+│   ├── main.tf                            # Core Azure, Unity Catalog & Databricks job resources (env v4)
 │   ├── providers.tf                       # Provider configurations (azurerm, databricks, random)
 │   ├── variables.tf                       # Terraform variables (location, environment)
 │   └── README.md                          # Terraform deployment guide
@@ -109,15 +109,17 @@ This project processes raw e-commerce order transactions, performs automated dat
   - **Frequency**: Total unique order count per customer (`COUNT(Order_ID)`).
   - **Monetary**: Total aggregate spend per customer (`SUM(Order_Amount)`).
   - **Return Rate**: Customer average product return rate (`AVG(Returned_Flag)`).
-- **Feature Normalization & Machine Learning**:
-  - Scales feature distributions using `sklearn.preprocessing.StandardScaler`.
-  - Fits unsupervised `KMeans` ($K=3$ clusters, `random_state=42`).
-  - Evaluates cluster separation using `silhouette_score`.
-- **MLflow Experiment Tracking**:
+- **Feature Normalization & Machine Learning (`pyspark.ml`)**:
+  - Assembles feature vectors using `pyspark.ml.feature.VectorAssembler`.
+  - Normalizes feature distributions using `pyspark.ml.feature.StandardScaler`.
+  - Fits distributed unsupervised `pyspark.ml.clustering.KMeans` ($K=4$ clusters, `seed=42`).
+  - Evaluates cluster separation using `pyspark.ml.evaluation.ClusteringEvaluator` (Silhouette Score).
+- **MLflow Native Spark Tracking**:
   - Configures experiment path `/Shared/Customer_Segmentation_MLOps`.
-  - Logs hyperparameters (`k_clusters=3`, `seed=42`, `algorithm="scikit-learn-kmeans"`), metrics (Silhouette Score = ~0.3479), and registers trained model artifacts natively via `mlflow.sklearn.log_model(sk_model=kmeans, artifact_path="kmeans_rfm_model")`.
-- **Profiling & Visualization**:
-  - Appends cluster predictions (`cluster_id`) back to the PySpark DataFrame.
+  - Logs hyperparameters (`k_clusters=4`, `seed=42`, `algorithm="pyspark-ml-kmeans"`), metrics (Silhouette Score), and registers trained Pipeline models natively via `mlflow.spark.log_model(spark_model=pipeline_model, artifact_path="pyspark_kmeans_rfm_model")`.
+- **Profiling & Vector Cleanup**:
+  - Drops intermediate feature vector columns (`raw_features`, `scaled_features`) before querying cluster profiles in PySpark SQL.
+  - Renders customer spend distribution visualizations with Seaborn and Matplotlib.
   - Profiles cluster metrics (average recency, frequency, monetary spend, return rate) via PySpark SQL queries.
   - Renders customer spend distribution visualizations with Seaborn and Matplotlib.
 

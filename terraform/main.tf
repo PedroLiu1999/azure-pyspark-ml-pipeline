@@ -104,7 +104,7 @@ resource "databricks_job" "mlops_pipeline_job" {
   environment {
     environment_key = "serverless_ml_env"
     spec {
-      environment_version = "3"
+      environment_version = "4"
       dependencies = [
         "kagglehub"
       ]
