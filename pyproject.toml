@@ -17,4 +17,11 @@ dependencies = [
 [dependency-groups]
 dev = [
     "nbstripout>=0.9.1",
+    "ruff>=0.16.1",
 ]
+
+[tool.ruff]
+builtins = ["dbutils"]
+
+[tool.ruff.lint.per-file-ignores]
+"notebooks/*" = ["BLE001"]

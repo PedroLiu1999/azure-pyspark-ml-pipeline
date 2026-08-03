@@ -20,9 +20,15 @@ jobs:
         with:
           python-version: '3.11'
 
-      - name: Check Python Syntax
-        run: |
-          python -m py_compile main.py
+      - name: Run Ruff Lint Check
+        uses: astral-sh/ruff-action@v3
+        with:
+          args: "check ."
+
+      - name: Run Ruff Formatting Check
+        uses: astral-sh/ruff-action@v3
+        with:
+          args: "format --check ."
 
       - name: Validate Notebook JSON Syntax
         run: |
