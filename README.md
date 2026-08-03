@@ -56,7 +56,7 @@ This project processes raw e-commerce order transactions, performs automated dat
 | **Data Processing** | [PySpark SQL & DataFrames](https://spark.apache.org/docs/latest/api/python/) (v4.1.1+) | Distributed data ingestion, schema enforcement, filtering, and cleaning. |
 | **Storage Format** | [Delta Lake](https://delta.io/) (v4.3.1+) | ACID transactions, optimized storage (`cleaned_orders.delta`), and Catalog tables. |
 | **Feature Aggregation** | PySpark SQL & Window Functions | RFM metric calculation (Recency, Frequency, Monetary, Return Rate). |
-| **Machine Learning** | PySpark ML (`VectorAssembler`, `StandardScaler`, `KMeans`) & MLflow | Distributed customer segmentation ($K=4$), Silhouette Score via `ClusteringEvaluator`, & `mlflow.spark` model logging. |
+| **Machine Learning** | PySpark ML (`VectorAssembler`, `StandardScaler`, `KMeans`) & MLflow | Distributed customer segmentation ($K=3$), Silhouette Score via `ClusteringEvaluator`, & `mlflow.spark` model logging. |
 | **Data Visualization** | Seaborn & Matplotlib | Visual profiling of cluster spend distributions and metric summaries. |
 | **Cloud Storage & Governance** | Azure ADLS Gen2 & Databricks Unity Catalog | Passwordless authentication via Access Connector, Managed Identity, and External Locations. |
 | **Cloud Infrastructure** | Azure Databricks (Premium SKU) | Serverless compute environment (v4) executing multi-task scheduled MLOps DAG jobs. |
@@ -112,11 +112,11 @@ This project processes raw e-commerce order transactions, performs automated dat
 - **Feature Normalization & Machine Learning (`pyspark.ml`)**:
   - Assembles feature vectors using `pyspark.ml.feature.VectorAssembler`.
   - Normalizes feature distributions using `pyspark.ml.feature.StandardScaler`.
-  - Fits distributed unsupervised `pyspark.ml.clustering.KMeans` ($K=4$ clusters, `seed=42`).
+  - Fits distributed unsupervised `pyspark.ml.clustering.KMeans` ($K=3$ clusters, `seed=42`).
   - Evaluates cluster separation using `pyspark.ml.evaluation.ClusteringEvaluator` (Silhouette Score).
-- **MLflow Tracking**:
+- **MLflow Native Spark Tracking**:
   - Configures experiment path `/Shared/Customer_Segmentation_MLOps`.
-  - Logs hyperparameters (`k_clusters=4`, `seed=42`, `algorithm="pyspark-ml-kmeans"`) and evaluation metrics (`silhouette_score`).
+  - Logs hyperparameters (`k_clusters=3`, `seed=42`, `algorithm="pyspark-ml-kmeans"`), evaluation metrics (`silhouette_score`), and registers trained Spark Pipeline models natively via `mlflow.spark.log_model(spark_model=pipeline_model, artifact_path="pyspark_kmeans_rfm_model", dfs_tmpdir="/tmp/mlflow_spark")`.
 - **Profiling & Vector Cleanup**:
   - Drops intermediate feature vector columns (`raw_features`, `scaled_features`) before querying cluster profiles in PySpark SQL.
   - Profiles cluster metrics (average recency, frequency, monetary spend, return rate) via PySpark SQL queries.
