@@ -36,7 +36,55 @@ resource "azurerm_databricks_workspace" "databricks" {
   sku                 = "premium"
 }
 
-# 5. Automatically Upload Notebooks from local folder to Databricks
+# 5. Azure Databricks Access Connector for Unity Catalog Storage Integration
+resource "azurerm_databricks_access_connector" "unity" {
+  name                = "dbx-access-connector-${var.environment}"
+  resource_group_name = azurerm_resource_group.rg.name
+  location            = azurerm_resource_group.rg.location
+
+  identity {
+    type = "SystemAssigned"
+  }
+}
+
+# 6. Assign Storage Blob Data Contributor Role to Access Connector
+resource "azurerm_role_assignment" "access_connector_blob_contributor" {
+  scope                = azurerm_storage_account.datalake.id
+  role_definition_name = "Storage Blob Data Contributor"
+  principal_id         = azurerm_databricks_access_connector.unity.identity[0].principal_id
+}
+
+# 7. Unity Catalog Storage Credential using Azure Managed Identity
+resource "databricks_storage_credential" "external_mi" {
+  name = "mi_storage_credential_${var.environment}"
+
+  azure_managed_identity {
+    access_connector_id = azurerm_databricks_access_connector.unity.id
+  }
+
+  comment    = "Storage credential managed by Terraform via Azure Access Connector"
+  depends_on = [azurerm_role_assignment.access_connector_blob_contributor]
+}
+
+# 8. Unity Catalog External Location for Raw Data Container
+resource "databricks_external_location" "raw_location" {
+  name            = "raw_data_external_location_${var.environment}"
+  url             = "abfss://${azurerm_storage_container.raw_layer.name}@${azurerm_storage_account.datalake.name}.dfs.core.windows.net/"
+  credential_name = databricks_storage_credential.external_mi.id
+  comment         = "External location for raw data lake container managed by Terraform"
+}
+
+# 9. Unity Catalog Grants on External Location
+resource "databricks_grants" "raw_location_grants" {
+  external_location = databricks_external_location.raw_location.id
+
+  grant {
+    principal  = "account users"
+    privileges = ["READ_FILES", "WRITE_FILES"]
+  }
+}
+
+# 10. Automatically Upload Notebooks from local folder to Databricks
 resource "databricks_notebook" "ingestion_notebook" {
   source = "${path.module}/../notebooks/01_data_ingestion_and_cleaning.ipynb"
   path   = "/Shared/notebooks/01_data_ingestion_and_cleaning"
@@ -49,7 +97,7 @@ resource "databricks_notebook" "rfm_ml_notebook" {
   format = "JUPYTER"
 }
 
-# 6. Create an Automated MLOps Job Workflow (Serverless Compute)
+# 11. Create an Automated MLOps Job Workflow (Serverless Compute)
 resource "databricks_job" "mlops_pipeline_job" {
   name = "PySpark_MLOps_Pipeline_Job"
 
